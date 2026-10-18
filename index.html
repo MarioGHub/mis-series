@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mis series (Supabase)</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;800&family=Figtree:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef0f7;--surface:#fff;--ink:#1b1f3b;--muted:#5d6385;--line:#d6d9ea;--accent:#d6336c;--accent-ink:#fff;--star:#f2a900;--ok:#1f9d6b;
+color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14172b;--surface:#1f2340;--ink:#eceefb;--muted:#a3a9cf;--line:#343a66;--accent:#ff6b9a;--accent-ink:#1b1f3b;--star:#ffc233;--ok:#4cd9a0;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14172b;--surface:#1f2340;--ink:#eceefb;--muted:#a3a9cf;--line:#343a66;--accent:#ff6b9a;--accent-ink:#1b1f3b;--star:#ffc233;--ok:#4cd9a0;color-scheme:dark}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Figtree,system-ui,sans-serif;line-height:1.5}
+main{max-width:1100px;margin:0 auto;padding:20px 16px 48px}
+h1{font-family:'Bricolage Grotesque',Georgia,sans-serif;font-weight:800;font-size:clamp(2rem,6vw,3.2rem);margin:0 0 4px;letter-spacing:-.02em}
+.sub{color:var(--muted);margin:0 0 20px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:20px}
+.panel h2{font-family:'Bricolage Grotesque',Georgia,sans-serif;font-size:1.1rem;margin:0 0 12px}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+label{display:flex;flex-direction:column;gap:4px;font-size:.85rem;color:var(--muted);flex:1 1 180px}
+input[type=text],input[type=number]{font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0}
+input[type=file]{font:inherit;font-size:.85rem;color:var(--ink);max-width:100%}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px 16px;font-weight:600}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.stats{color:var(--muted);font-size:.9rem;margin:0 0 12px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:16px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden;display:flex;flex-direction:column}
+.poster{position:relative;display:block;width:100%;aspect-ratio:2/3;border:0;padding:0;background:var(--line);overflow:hidden}
+.poster img{width:100%;height:100%;object-fit:cover;display:block;transition:filter .2s,opacity .2s}
+.card:not(.seen) .poster img{filter:grayscale(.85);opacity:.7}
+.badge{position:absolute;left:8px;top:8px;background:var(--ink);color:var(--bg);font-size:.78rem;font-weight:600;border-radius:99px;padding:3px 10px}
+.card.seen .badge{background:var(--ok);color:#fff}
+.body{padding:12px;display:flex;flex-direction:column;gap:10px;flex:1}
+.title{font-family:'Bricolage Grotesque',Georgia,sans-serif;font-weight:600;font-size:1.05rem;margin:0;overflow-wrap:anywhere}
+.stars{display:flex;gap:2px}
+.stars button{background:none;border:0;padding:0 1px;font-size:1.5rem;line-height:1;color:var(--line)}
+.stars button.on{color:var(--star)}
+.clip{width:100%;border-radius:8px;display:block;background:#000;max-height:180px;object-fit:contain}
+.actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:auto}
+.small{font-size:.82rem;padding:5px 10px;border-radius:8px;border:1px solid var(--line);background:transparent;color:var(--ink);text-decoration:none;display:inline-block}
+.small.tg{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.addclip{font-size:.82rem;color:var(--muted)}
+.pager{display:flex;flex-wrap:wrap;gap:6px;justify-content:center;margin-top:24px}
+.pager button{min-width:40px;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--surface);color:var(--ink)}
+.pager button[aria-current=page]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.pager button:disabled{opacity:.4;cursor:default}
+.empty{text-align:center;color:var(--muted);padding:40px 12px}
+.msg{color:var(--accent);font-size:.85rem;min-height:1.2em;margin:8px 0 0}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+</head>
+<body>
+<main>
+<h1>Mis series</h1>
+<p class="sub">Sube un póster, marca lo que ya viste, puntúa y guarda tus mejores escenas.</p>
+
+<section class="panel" id="auth" aria-labelledby="h-auth">
+<h2 id="h-auth">Entrar</h2>
+<div class="row">
+<label>Correo<input type="text" id="a-email" autocomplete="email" inputmode="email"></label>
+<label>Contraseña<input type="password" id="a-pass" autocomplete="current-password" style="font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;min-width:0"></label>
+<button class="btn" id="b-in">Entrar</button>
+<button class="btn ghost" id="b-up">Crear cuenta</button>
+</div>
+<p class="msg" id="amsg" role="status"></p>
+</section>
+<p class="sub" id="who" hidden>Sesión: <span id="who-mail"></span> <button class="small" id="b-out">Salir</button></p>
+<div id="app" hidden>
+<section class="panel" aria-labelledby="h-add">
+<h2 id="h-add">Añadir serie</h2>
+<div class="row">
+<label>Título<input type="text" id="f-title" placeholder="Ej. Dark"></label>
+<label>Póster (imagen)<input type="file" id="f-poster" accept="image/*"></label>
+<label>Highlight (GIF o MP4, opcional)<input type="file" id="f-clip" accept="image/gif,video/mp4"></label>
+<button class="btn" id="b-add">Añadir</button>
+</div>
+<p class="msg" id="msg" role="status"></p>
+</section>
+
+<section class="panel" aria-labelledby="h-tg">
+<h2 id="h-tg">Telegram</h2>
+<div class="row">
+<label>Enlace de tu grupo o canal<input type="text" id="f-group" placeholder="https://t.me/migrupo"></label>
+<button class="btn ghost" id="b-group">Guardar enlace</button>
+</div>
+<p class="sub" style="margin:8px 0 0;font-size:.85rem">En cada serie puedes indicar el número de mensaje del grupo para enlazar directo a esa publicación (https://t.me/migrupo/123). Sin número, el botón abre el menú de compartir de Telegram.</p>
+</section>
+
+<p class="stats" id="stats"></p>
+<div class="grid" id="grid"></div>
+<nav class="pager" id="pager" aria-label="Paginación"></nav>
+</div>
+</main>
+
+<script>
+// ====== CONFIGURA AQUÍ (Supabase → Project Settings → API) ======
+const SUPABASE_URL = 'https://TU-PROYECTO.supabase.co';
+const SUPABASE_KEY = 'TU_ANON_KEY';
+// =================================================================
+const PER_PAGE = 10, MAX_CLIP = 12 * 1024 * 1024, BUCKET = 'media';
+const $ = id => document.getElementById(id);
+const say = t => { $('msg').textContent = t; };
+const okClip = f => f.size <= MAX_CLIP && /^(image\/gif|video\/mp4)$/.test(f.type);
+let sb, user = null, items = [], page = 1, total = 0, group = '';
+
+function el(tag, props = {}, ...kids){
+  const n = document.createElement(tag);
+  for(const k in props){ if(k === 'class') n.className = props[k]; else if(k.startsWith('on')) n.addEventListener(k.slice(2), props[k]); else n.setAttribute(k, props[k]); }
+  kids.flat().forEach(c => n.append(c));
+  return n;
+}
+const pub = path => sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
+
+async function upload(file){
+  const ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+  const path = user.id + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+  const { error } = await sb.storage.from(BUCKET).upload(path, file, { contentType: file.type });
+  if(error) throw error;
+  return path;
+}
+
+async function refresh(){
+  const from = (page - 1) * PER_PAGE;
+  const { data, count, error } = await sb.from('series').select('*', { count: 'exact' }).order('created_at', { ascending: false }).range(from, from + PER_PAGE - 1);
+  if(error){ say('Error al cargar: ' + error.message); return; }
+  total = count || 0;
+  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+  if(page > pages){ page = pages; return refresh(); }
+  items = data; render();
+}
+
+async function patch(it, changes){
+  const { error } = await sb.from('series').update(changes).eq('id', it.id);
+  if(error){ say('No se pudo guardar: ' + error.message); return; }
+  Object.assign(it, changes); render();
+}
+
+async function pickClip(it, file){
+  if(!file) return;
+  if(!okClip(file)){ say('El highlight debe ser GIF o MP4 de hasta 12 MB.'); return; }
+  try { say('Subiendo highlight…'); const p = await upload(file); await patch(it, { clip_path: p, clip_type: file.type }); say(''); }
+  catch(e){ say('Error al subir: ' + e.message); }
+}
+
+async function removeSeries(it){
+  const files = [it.poster_path, it.clip_path].filter(Boolean);
+  await sb.storage.from(BUCKET).remove(files);
+  const { error } = await sb.from('series').delete().eq('id', it.id);
+  if(error){ say('No se pudo eliminar: ' + error.message); return; }
+  refresh();
+}
+
+function tgLink(it){
+  const g = group.replace(/\/+$/, '');
+  if(g && it.msg) return g + '/' + it.msg;
+  return 'https://t.me/share/url?url=' + encodeURIComponent(g || 'https://t.me') + '&text=' + encodeURIComponent(it.title + (it.rating ? ' · ' + '★'.repeat(it.rating) : ''));
+}
+
+function card(it){
+  const poster = el('button', { class: 'poster', 'aria-pressed': String(it.watched), 'aria-label': (it.watched ? 'Desmarcar ' : 'Marcar como vista ') + it.title, onclick: () => patch(it, { watched: !it.watched }) },
+    el('img', { src: pub(it.poster_path), alt: 'Póster de ' + it.title }),
+    el('span', { class: 'badge' }, it.watched ? 'Vista' : 'Por ver'));
+
+  const stars = el('div', { class: 'stars', role: 'group', 'aria-label': 'Puntuación de ' + it.title });
+  for(let n = 1; n <= 5; n++){
+    stars.append(el('button', { class: n <= it.rating ? 'on' : '', 'aria-label': n + (n === 1 ? ' estrella' : ' estrellas'), 'aria-pressed': String(n <= it.rating), onclick: () => patch(it, { rating: it.rating === n ? 0 : n }) }, '★'));
+  }
+
+  let clip;
+  if(it.clip_path){
+    clip = it.clip_type === 'video/mp4'
+      ? el('video', { class: 'clip', src: pub(it.clip_path), controls: '', muted: '', loop: '', playsinline: '' })
+      : el('img', { class: 'clip', src: pub(it.clip_path), alt: 'Highlight de ' + it.title });
+  } else {
+    clip = el('label', { class: 'addclip' }, 'Añadir highlight (GIF o MP4)', el('input', { type: 'file', accept: 'image/gif,video/mp4', onchange: e => pickClip(it, e.target.files[0]) }));
+  }
+
+  const msgInput = el('input', { type: 'number', min: '1', placeholder: 'Nº msg', value: it.msg || '', 'aria-label': 'Número de mensaje en Telegram', style: 'width:84px;padding:5px 8px', onchange: e => patch(it, { msg: e.target.value.trim() || null }) });
+
+  const actions = el('div', { class: 'actions' },
+    el('a', { class: 'small tg', href: tgLink(it), target: '_blank', rel: 'noopener noreferrer' }, 'Telegram'),
+    msgInput,
+    it.clip_path ? el('button', { class: 'small', onclick: async () => { await sb.storage.from(BUCKET).remove([it.clip_path]); patch(it, { clip_path: null, clip_type: null }); } }, 'Quitar clip') : '',
+    el('button', { class: 'small', onclick: () => { if(confirm('¿Eliminar “' + it.title + '”?')) removeSeries(it); } }, 'Eliminar'));
+
+  return el('article', { class: 'card' + (it.watched ? ' seen' : '') }, poster, el('div', { class: 'body' }, el('h3', { class: 'title' }, it.title), stars, clip, actions));
+}
+
+function render(){
+  const pages = Math.max(1, Math.ceil(total / PER_PAGE));
+  $('stats').textContent = total ? total + ' series · página ' + page + ' de ' + pages : '';
+  const grid = $('grid'); grid.replaceChildren();
+  if(!items.length) grid.append(el('p', { class: 'empty' }, 'Aún no hay series. Añade la primera con su póster.'));
+  items.forEach(it => grid.append(card(it)));
+  const pg = $('pager'); pg.replaceChildren();
+  if(pages > 1){
+    const go = n => () => { page = n; refresh(); window.scrollTo({ top: 0 }); };
+    pg.append(el('button', { onclick: go(page - 1), ...(page === 1 ? { disabled: '' } : {}) }, 'Anterior'));
+    for(let n = 1; n <= pages; n++) pg.append(el('button', { onclick: go(n), ...(n === page ? { 'aria-current': 'page' } : {}) }, String(n)));
+    pg.append(el('button', { onclick: go(page + 1), ...(page === pages ? { disabled: '' } : {}) }, 'Siguiente'));
+  }
+}
+
+$('b-add').addEventListener('click', async () => {
+  const title = $('f-title').value.trim(), poster = $('f-poster').files[0], clip = $('f-clip').files[0];
+  if(!title || !poster){ say('Escribe un título y elige un póster.'); return; }
+  if(clip && !okClip(clip)){ say('El highlight debe ser GIF o MP4 de hasta 12 MB.'); return; }
+  try {
+    say('Subiendo…');
+    const poster_path = await upload(poster);
+    const row = { title, poster_path };
+    if(clip){ row.clip_path = await upload(clip); row.clip_type = clip.type; }
+    const { error } = await sb.from('series').insert(row);
+    if(error) throw error;
+    $('f-title').value = ''; $('f-poster').value = ''; $('f-clip').value = '';
+    say(''); page = 1; refresh();
+  } catch(e){ say('Error: ' + e.message); }
+});
+
+$('b-group').addEventListener('click', () => {
+  group = $('f-group').value.trim();
+  try { localStorage.setItem('tg-group', group); } catch(e) {}
+  say('Enlace de Telegram guardado.'); render();
+});
+
+async function auth(kind){
+  const email = $('a-email').value.trim(), password = $('a-pass').value;
+  if(!email || password.length < 6){ $('amsg').textContent = 'Escribe tu correo y una contraseña de al menos 6 caracteres.'; return; }
+  const { error } = kind === 'in' ? await sb.auth.signInWithPassword({ email, password }) : await sb.auth.signUp({ email, password });
+  $('amsg').textContent = error ? error.message : (kind === 'up' ? 'Cuenta creada. Si te pedimos confirmar el correo, revisa tu bandeja.' : '');
+}
+$('b-in').addEventListener('click', () => auth('in'));
+$('b-up').addEventListener('click', () => auth('up'));
+$('b-out').addEventListener('click', () => sb.auth.signOut());
+
+function session(s){
+  user = s ? s.user : null;
+  $('auth').hidden = !!user; $('who').hidden = !user; $('app').hidden = !user;
+  if(user){ $('who-mail').textContent = user.email; page = 1; refresh(); } else { items = []; total = 0; }
+}
+
+(function init(){
+  try { group = localStorage.getItem('tg-group') || ''; } catch(e) {}
+  $('f-group').value = group;
+  if(SUPABASE_URL.includes('TU-PROYECTO') || !window.supabase){
+    $('amsg').textContent = 'Falta configurar SUPABASE_URL y SUPABASE_KEY al inicio del script.'; return;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  sb.auth.onAuthStateChange((_e, s) => session(s));
+  sb.auth.getSession().then(({ data }) => session(data.session));
+})();
+</script>
+</body>
+</html>
